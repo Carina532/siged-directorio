@@ -46,7 +46,7 @@ td{padding:8px;border-bottom:1px solid #eee;font-size:12px}td.editable{backgroun
 #toast{position:fixed;bottom:20px;right:20px;background:var(--guinda);color:white;padding:10px 16px;border-radius:8px;display:none}
 </style></head><body>
 <header><div style="width:36px;height:36px;background:white;color:var(--guinda);border-radius:50%;display:grid;place-items:center;font-weight:900">SEP</div>
-<div><b>Directorio SIGED 2026 Secretarios, Enlaces y Operadores</b><br><small>{{file}} | {{count}} contactos</small></div>
+<div><b>Directorio SIGED 2026 Secretarios, Enlaces y Operadores</b></div>
 <div style="margin-left:auto"><span id="status" style="background:rgba(255,255,255,.2);padding:6px 10px;border-radius:6px;font-size:11px">Listo</span></div></header>
 
 <div class="controls">
