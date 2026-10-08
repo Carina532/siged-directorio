@@ -5,7 +5,6 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Buscar cualquier xlsx en el repo
 EXCEL_FILE = None
 for f in os.listdir("."):
     if f.lower().endswith(".xlsx"):
@@ -18,8 +17,6 @@ if not EXCEL_FILE:
             EXCEL_FILE = f
             break
 
-print(f"EXCEL DETECTADO: {EXCEL_FILE}")
-
 def load_data():
     try:
         if not EXCEL_FILE or not os.path.exists(EXCEL_FILE):
@@ -29,41 +26,43 @@ def load_data():
         df.columns = [c.strip() for c in df.columns]
         return df
     except Exception as e:
-        print(f"ERROR load_data {e}")
+        print(f"ERROR {e}")
         traceback.print_exc()
         return pd.DataFrame(columns=["ENTIDAD","ROL SIGED","NOMBRE","PUESTO","CORREO ELECTRONICO","TELEFONO","DIRECCION","FECHA DE ACTUALIZACION"])
 
 TEMPLATE = """
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Directorio SIGED 2026</title>
+<title>Directorio SIGED 2026 Secretarios, Enlaces y Operadores</title>
 <style>
 :root{--guinda:#621132;--oro:#b38e5d;--bg:#f6f2ee}*{font-family:Arial,sans-serif;box-sizing:border-box}
-body{margin:0;background:var(--bg)}header{background:var(--guinda);color:white;padding:16px 24px;display:flex;gap:12px;align-items:center;position:sticky;top:0}
-.controls{background:white;padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:3px solid var(--guinda);position:sticky;top:68px;z-index:10}
-input,select{padding:10px;border:1px solid #ccc;border-radius:8px;min-width:160px}
+body{margin:0;background:var(--bg)}header{background:var(--guinda);color:white;padding:16px 24px;display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:20}
+.controls{background:white;padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:3px solid var(--guinda);position:sticky;top:68px;z-index:10;align-items:center}
+select{padding:10px;border:1px solid #ccc;border-radius:8px;min-width:200px}
 .btn{background:var(--guinda);color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:700}
-.btn-green{background:#0f5132}.btn-oro{background:var(--oro)}
+.btn-green{background:#0f5132}
 table{width:100%;background:white;border-collapse:collapse}th{background:var(--guinda);color:white;padding:10px 6px;font-size:11px;text-transform:uppercase;position:sticky;top:0}
 td{padding:8px;border-bottom:1px solid #eee;font-size:12px}td.editable{background:#fffbe6}
 #toast{position:fixed;bottom:20px;right:20px;background:var(--guinda);color:white;padding:10px 16px;border-radius:8px;display:none}
 </style></head><body>
 <header><div style="width:36px;height:36px;background:white;color:var(--guinda);border-radius:50%;display:grid;place-items:center;font-weight:900">SEP</div>
-<div><b>Directorio SIGED 2026</b> - Guarda REAL al Excel<br><small>{{file}} | {{count}} contactos</small></div>
+<div><b>Directorio SIGED 2026 Secretarios, Enlaces y Operadores</b><br><small>{{file}} | {{count}} contactos</small></div>
 <div style="margin-left:auto"><span id="status" style="background:rgba(255,255,255,.2);padding:6px 10px;border-radius:6px;font-size:11px">Listo</span></div></header>
+
 <div class="controls">
-<input id="q" placeholder="Buscar..." style="flex:1;min-width:240px"><select id="fEnt"><option value="">Todas Entidades</option></select>
+<select id="fEnt"><option value="">Todas Entidades</option></select>
 <select id="fRol"><option value="">Todos Roles</option></select>
 <button class="btn btn-green" onclick="guardarExcel()">Guardar a Excel REAL</button>
 <button class="btn" onclick="descargar()">Descargar</button>
-<span id="cont" style="font-weight:800;color:var(--guinda)"></span></div>
+<span id="cont" style="font-weight:800;color:var(--guinda);margin-left:auto"></span></div>
+
 <div style="overflow:auto;padding:12px"><table><thead><tr>
-<th>Entidad</th><th>Rol</th><th>Nombre</th><th>Puesto</th><th>Correo</th><th>Tel</th><th>Direccion</th><th>Fecha</th>
+<th>ENTIDAD</th><th>ROL</th><th>NOMBRE</th><th>PUESTO</th><th>CORREO</th><th>TEL</th><th>DIRECCION</th><th>FECHA</th>
 </tr></thead><tbody id="tbody"></tbody></table></div>
 <div id="toast"></div>
 <script>
 let DATA = {{data_json|safe}}; let filtrados=[]; let cambios={};
-const tbody=document.getElementById('tbody'), q=document.getElementById('q'), fEnt=document.getElementById('fEnt'), fRol=document.getElementById('fRol'), cont=document.getElementById('cont'), statusEl=document.getElementById('status');
+const tbody=document.getElementById('tbody'), fEnt=document.getElementById('fEnt'), fRol=document.getElementById('fRol'), cont=document.getElementById('cont'), statusEl=document.getElementById('status');
 const cols = Object.keys(DATA[0]||{});
 function colNombre(){ return cols.find(c=>c.includes('NOMBRE'))||'NOMBRE' }
 function colCorreo(){ return cols.find(c=>c.includes('CORREO'))||'CORREO ELECTRONICO' }
@@ -74,11 +73,8 @@ function colDir(){ return cols.find(c=>c.includes('DIRECC'))||'DIRECCION' }
 [...new Set(DATA.map(d=>d[colEnt()]))].filter(Boolean).sort().forEach(e=>{let o=document.createElement('option');o.value=e;o.textContent=e;fEnt.appendChild(o)});
 [...new Set(DATA.map(d=>d[colRol()]))].filter(Boolean).sort().forEach(e=>{let o=document.createElement('option');o.value=e;o.textContent=e;fRol.appendChild(o)});
 function render(){
- let filtro=q.value.toLowerCase(), ent=fEnt.value, rol=fRol.value;
- filtrados=DATA.filter(r=>{
-  let txt=JSON.stringify(r).toLowerCase();
-  return (!filtro||txt.includes(filtro)) && (!ent||r[colEnt()]===ent) && (!rol||r[colRol()]===rol);
- });
+ let ent=fEnt.value, rol=fRol.value;
+ filtrados=DATA.filter(r=>{ return (!ent||r[colEnt()]===ent) && (!rol||r[colRol()]===rol); });
  cont.textContent=filtrados.length+' contactos'; tbody.innerHTML='';
  filtrados.forEach(r=>{
   let idx=DATA.indexOf(r);
@@ -112,19 +108,15 @@ function guardarExcel(){
 }
 function descargar(){ window.location='/descargar'; }
 function toast(m){let t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
-q.addEventListener('input', render); fEnt.addEventListener('change', render); fRol.addEventListener('change', render); render();
+fEnt.addEventListener('change', render); fRol.addEventListener('change', render); render();
 </script></body></html>
 """
 
 @app.route("/")
 def index():
-    try:
-        df = load_data()
-        data_json = df.to_json(orient="records", force_ascii=False)
-        return render_template_string(TEMPLATE, data_json=data_json, count=len(df), file=EXCEL_FILE or "SIN EXCEL")
-    except Exception as e:
-        traceback.print_exc()
-        return f"<h1>Error: {e}</h1><pre>{traceback.format_exc()}</pre>", 500
+    df = load_data()
+    data_json = df.to_json(orient="records", force_ascii=False)
+    return render_template_string(TEMPLATE, data_json=data_json, count=len(df), file=EXCEL_FILE or "SIN EXCEL")
 
 @app.route("/guardar", methods=["POST"])
 def guardar():
@@ -132,15 +124,8 @@ def guardar():
         payload = request.get_json()
         data_list = payload.get("cambios", [])
         df_new = pd.DataFrame(data_list)
-        if not EXCEL_FILE:
-            return jsonify({"ok": False, "error": "No hay Excel en servidor"})
         df_new.to_excel(EXCEL_FILE, index=False)
-        backup = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        try:
-            df_new.to_excel(backup, index=False)
-        except:
-            pass
-        return jsonify({"ok": True, "file": EXCEL_FILE, "count": len(df_new), "backup": backup})
+        return jsonify({"ok": True, "file": EXCEL_FILE})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)})
@@ -150,11 +135,7 @@ def descargar():
     df = load_data()
     tmp = "/tmp/descarga.xlsx"
     df.to_excel(tmp, index=False)
-    return send_file(tmp, as_attachment=True, download_name=f"Directorio_SIGED_EDITADO_{datetime.now().strftime('%Y-%m-%d')}.xlsx")
-
-@app.errorhandler(500)
-def err500(e):
-    return f"<h1>500 - Error interno</h1><pre>{traceback.format_exc()}</pre>", 500
+    return send_file(tmp, as_attachment=True, download_name="Directorio_SIGED_2026.xlsx")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
